@@ -1,0 +1,19 @@
+# Build artifacts
+build/
+*.o
+*.obj
+*.exe
+*.out
+*.a
+*.so
+CMakeLists.txt
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+*.swp
+*.swo
+.vscode/
+.idea/

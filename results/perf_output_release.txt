@@ -1,0 +1,21 @@
+
+ Performance counter stats for './main 1000000000':
+
+          9.275,07 msec task-clock:u                     #    0,999 CPUs utilized             
+                 0      context-switches:u               #    0,000 /sec                      
+                 0      cpu-migrations:u                 #    0,000 /sec                      
+           168.583      page-faults:u                    #   18,176 K/sec                     
+    11.993.011.971      instructions:u                   #    0,37  insn per cycle            
+                                                  #    0,34  stalled cycles per insn   
+    32.166.923.143      cycles:u                         #    3,468 GHz                       
+       216.231.377      stalled-cycles-frontend:u        #    0,67% frontend cycles idle      
+     4.102.490.082      stalled-cycles-backend:u         #   12,75% backend cycles idle       
+     2.133.334.056      branches:u                       #  230,007 M/sec                     
+        61.839.655      branch-misses:u                  #    2,90% of all branches           
+
+       9,280367723 seconds time elapsed
+
+       8,743878000 seconds user
+       0,478113000 seconds sys
+
+

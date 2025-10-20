@@ -36,66 +36,23 @@ int main(int argc, char** argv){
     }
 
     if(rank == 0){
-        bool working_procs[size-1];
-        bool still_working = true;
+        master_loop(size, slice_size);
+        i8* primes_indexes = malloc(N * sizeof(i8));
 
-        memset(working_procs, 1, size-1);
+        MPI_Gather(NULL, 0, MPI_INT8_T, primes_indexes, N, MPI_INT8_T, 0, MPI_COMM_WORLD);
 
-        u32 received_prime_task[2];
-        MPI_Status status;
-
-        //Master
-        while (still_working){
-            MPI_Recv(
-                received_prime_task, 1, MPI_UINT32_T,
-                MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD,
-                &status
-            );
-
-            if (received_prime_task[0] == 0){
-                working_procs[status.MPI_SOURCE-1] = 0;
-            }
-
-            const int send_to = status.MPI_SOURCE + 1;
-            
-            if(send_to < size){
-                received_prime_task[1] = (send_to-1) * slice_size +1;
-                for (;received_prime_task[1] % received_prime_task[0] != 0; received_prime_task[1]++);
-
-                MPI_Send(received_prime_task, 2, MPI_UINT32_T, send_to, 0, MPI_COMM_WORLD);
-                working_procs[status.MPI_SOURCE-1] = 1;
-            }
-
-            still_working = false;
-            for(int i=0; i<size-1; i++){
-                if(working_procs[i] == 1){
-                    still_working = true;
-                    break;
-                }
-            }
-        }
-
+        free(primes_indexes);
         MPI_Finalize();
         return 0;
     }
 
+    slave(rank, slice_size);
     /* 
         - Criar Tasks nos slaves.
         - Sinalizar saída dos processos.
         - Receber e iniciar as Tasks.
     */
 
-    i8Buffer numbers = i8_buffer_init(slice_size);
-
-    const size_t first_num = (rank-1) * slice_size + 1;
-    const size_t last_num = first_num + slice_size - 1;
-
-    LOG("Slice %d: from %d to %d\n", rank, first_num, last_num);
-
-    mark_vector(numbers, first_num, last_num);
-
-    i8_buffer_free(&numbers);
-    
     
     MPI_Finalize();
 

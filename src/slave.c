@@ -1,66 +1,87 @@
 #include <slave.h>
+
+#include <macros.h>
 #include <simple_buffers.h>
-#include <string.h>
-#include <mpi.h>
 #include <stdbool.h>
+#include <string.h>
+#include <stdio.h>
+#include <mpi.h>
 
 #define IS_PRIME 1
 #define NOT_PRIME 0
+#define SHOULD_START_PRIME_SEARCH 0
+#define SLAVE_FINISHED_PRIME_SEARCH 0
+#define MASTER 0
+#define MESSAGE_MASTER_SYNC(BUFFER) MPI_Send(BUFFER, 1, MPI_UINT32_T, MASTER, 0, MPI_COMM_WORLD)
+#define MESSAGE_MASTER_ASYNC(BUFFER, REQ_PTR) MPI_Isend(BUFFER, 1, MPI_UINT32_T, MASTER, 0, MPI_COMM_WORLD, REQ_PTR)
+#define RECOVER_FROM_MASTER_SYNC(BUFFER) MPI_Recv(BUFFER, 1, MPI_UINT32_T, MASTER, MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE)
 
-inline static u32 num_of(const size_t index, const size_t first_num) {return index + first_num;}
-inline static u32 index_of(const u32 number, const size_t first_num) {return number - first_num;}
+static i8Buffer slice;
+static u32 slice_first_num;
 
-void slave(const int rank, const size_t slice_size){
-    i8Buffer numbers = i8_buffer_init(slice_size);
-    memset(numbers.m_buffer, IS_PRIME, slice_size);
-    u32 task_buffer[2];
-    
-    const size_t first_num = (rank-1) * slice_size + 1;
-    const size_t last_num = first_num + slice_size - 1;
+inline static u32 num_of(u32 const index) { return index + slice_first_num; }
+inline static u32 index_of(u32 const number) { return number - slice_first_num; }
 
-    LOG("Slice %d: from %d to %d\n", rank, first_num, last_num);
-
-    MPI_Request request;
-    MPI_Irecv(task_buffer, 2, MPI_UINT32_T, 0, MPI_ANY_TAG, MPI_COMM_WORLD, &request);
-    
-    int test_result;
-
-    for(size_t i = 0; i < numbers.m_buffer_size; i++){
-        if(numbers.m_buffer[i] == NOT_PRIME) continue;
-    
-        if((MPI_Test(&request, &test_result, MPI_STATUS_IGNORE), test_result)){
-            mark_prime(task_buffer[0], numbers, task_buffer[1], first_num);
-            MPI_Irecv(task_buffer, 2, MPI_UINT32_T, 0, MPI_ANY_TAG, MPI_COMM_WORLD, &request);
-        }
-        const u32 prime_found = num_of(i, first_num);
-
-        mark_prime(prime_found, numbers, prime_found*prime_found, first_num);
-    }
-
-    task_buffer[0] = 0;
-    MPI_Send(task_buffer, 1, MPI_UINT32_T, 0, 0, MPI_COMM_WORLD);
-    MPI_Recv(task_buffer, 2, MPI_UINT32_T, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-
-    
-    while(task_buffer[0]){
-        //Stop condition
-        MPI_Recv(task_buffer, 2, MPI_UINT32_T, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-        if(not task_buffer[0]) break;
-
-        mark_prime(task_buffer[0], numbers, task_buffer[1], first_num);
-        MPI_Send(task_buffer, 1, MPI_UINT32_T, 0, 0, MPI_COMM_WORLD);
-        MPI_Recv(task_buffer, 2, MPI_UINT32_T, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-    }
-    
-    MPI_Gather(numbers.m_buffer, numbers.m_buffer_size, MPI_INT8_T, NULL, 0, MPI_INT8_T, 0, MPI_COMM_WORLD);
-    i8_buffer_free(&numbers);
+static void mark_multiples(u32 const prime) {
+  u32 const start_from_num = MAX(((slice_first_num + prime - 1) / prime) * prime, prime * prime);
+  LOG("Slave [%" PRIu32 ", %" PRIu32 "] marking multiples of %" PRIu32 " beginning in %" PRIu32, slice_first_num, num_of(slice.m_buffer_size - 1), prime, start_from_num);
+  for(u32 i = index_of(start_from_num); i < slice.m_buffer_size; i += prime)
+    slice.m_buffer[i] = NOT_PRIME;
 }
 
-void mark_prime(const u32 prime, i8Buffer numbers, const u32 from, const size_t first_num){
-    for(size_t i=index_of(from, first_num); i < numbers.m_buffer_size; i += prime){
-        numbers.m_buffer[i] = NOT_PRIME;
+bool slave_init(int const rank, u32 const slice_size) {
+  slice_first_num = (rank - 1) * slice_size + 1;
+  slice = i8_buffer_init(slice_size);
+  if(IS_NULL_BUFFER(slice)) {
+    fprintf(stderr, "Error initialising slave's slice occurred in rank: %d", rank);
+    LOG("Failed to inialise the slave with rank: %d", rank);
+    return false;
+  }
+  memset(slice.m_buffer, IS_PRIME, slice_size);
+  if(slice_first_num == 1)
+    slice.m_buffer[0] = NOT_PRIME;
+  LOG("Slave with rank %d initialised successfully.", rank);
+  return true;
+}
+
+static void slave_prime_search_loop() {
+  LOG("Starting search for primes in slave whose first num is %" PRIu32, slice_first_num);
+  MPI_Request prime_announce_req;
+  for(u32 i = 0; i < slice.m_buffer_size; i += 1) {
+    if(slice.m_buffer[i] == NOT_PRIME)
+      continue;
+    u32 const val = num_of(i);
+    MESSAGE_MASTER_ASYNC(&val, &prime_announce_req);
+    mark_multiples(val);
+    MPI_Wait(&prime_announce_req, MPI_STATUS_IGNORE);
+  }
+  u32 message = SLAVE_FINISHED_PRIME_SEARCH;
+  MESSAGE_MASTER_SYNC(&message);
+  LOG("Finished search for primes in slave whose first num is %" PRIu32, slice_first_num);
+}
+
+void slave_loop() {
+  u32 from_master_buf;
+  while(true) {
+    RECOVER_FROM_MASTER_SYNC(&from_master_buf);
+    if(from_master_buf == SHOULD_START_PRIME_SEARCH) {
+      slave_prime_search_loop();
+      break;
     }
+    mark_multiples(from_master_buf);
+  }
+}
+
+void slave_finish() {
+  LOG("Finished slave whose first num is: %" PRIu32 "successfully", slice_first_num);
+  i8_buffer_free(&slice);
 }
 
 #undef IS_PRIME
 #undef NOT_PRIME
+#undef SHOULD_START_PRIME_SEARCH
+#undef SLAVE_FINISHED_PRIME_SEARCH
+#undef MASTER
+#undef MESSAGE_MASTER_ASYNC
+#undef MESSAGE_MASTER_SYNC
+#undef RECOVER_FROM_MASTER_SYNC

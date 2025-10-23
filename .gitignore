@@ -6,7 +6,6 @@ build/
 *.out
 *.a
 *.so
-CMakeLists.txt
 
 # OS files
 .DS_Store   

@@ -1,9 +1,9 @@
 #ifndef SIMPLE_BUFFERS_H
 #define SIMPLE_BUFFERS_H
 
+#include <macros.h>
 #include <stdint.h>
 #include <sys/types.h>
-#include <macros.h>
 
 struct __u32_buffer {
   size_t m_buffer_size;

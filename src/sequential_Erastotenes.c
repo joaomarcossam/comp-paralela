@@ -1,6 +1,7 @@
-#include <simple_buffers.h>
-#include <macros.h>
 #include <sequential_Erastotenes.h>
+
+#include <macros.h>
+#include <simple_buffers.h>
 #include <stdint.h>
 #include <inttypes.h>
 #include <string.h>

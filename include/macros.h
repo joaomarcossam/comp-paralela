@@ -4,6 +4,7 @@
 #define deref_as(TYPE, ITEM) (*((TYPE*)(ITEM)))
 #define MAX(A,B) ((A) > (B) ? (A) : (B))
 #define MIN(A,B) ((A) < (B) ? (A) : (B))
+#define u64 uint64_t
 #define u32 uint32_t
 #define i8 int8_t
 #define not !

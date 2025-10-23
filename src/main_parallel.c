@@ -1,10 +1,5 @@
 #ifdef PARALLEL
 
-//DAR UMA ÚLTIMA PASSADA NA PARADA PRA VER SE ESTÁ TUDO FAZENDO SENTIDO
-//CHECAR SE FUNCIONA
-//FAZER OS TESTES COM OS RESULTS
-//JOGAR TUDO NO GITHUB
-
 #include <macros.h>
 #include <simple_buffers.h>
 #include <master.h>
@@ -28,7 +23,8 @@ int main(int argc, char ** argv){
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
     int const num_slaves = num_procs - 1;
-    u32 const slice_size = N/num_slaves;
+    u32 const num_odds = (N - 1) / 2;
+    u64 const slice_size = num_odds / num_slaves;
     if(num_procs < 3){
         fprintf(stderr, "Process count lower than 3.\nMaster-Slave strategy won't work in this case, use more processors\n");
         MPI_Finalize();

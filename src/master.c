@@ -77,6 +77,8 @@ bool master_init(u32 const N, int const ns) {
     bcast_requests[i] = MPI_REQUEST_NULL;
   num_slaves = ns;
   master_update_slave_search_for_prime();
+  master_primes_found.m_buffer[0] = 2;
+  master_primes_found_len = 1;
   LOG("Master initialised");
   return true;
 }

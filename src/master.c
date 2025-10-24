@@ -64,7 +64,7 @@ static bool master_update_slave_search_for_prime() {
 bool master_init(u32 const N, int const ns) {
   bcast_requests = malloc(sizeof(MPI_Request) * ns);
   bcast_prime_buffer = malloc(32 * ns);
-  master_primes_found = u32_buffer_init((size_t)(1.3 * N/log((double)N)));
+  master_primes_found = u32_buffer_init((size_t)(1.3 * (N/log((long double)N))));
   if((not bcast_requests) or (not bcast_prime_buffer) or IS_NULL_BUFFER(master_primes_found)) {
     fprintf(stderr, "Error getting memory for master internal vectors\n");
     free(bcast_requests);

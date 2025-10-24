@@ -20,14 +20,14 @@ static i8Buffer slice;
 static u32 slice_first_num;
 
 inline static u32 num_of(u32 const index) { return index * 2 + slice_first_num; }
-inline static u32 index_of(u32 const number) { return (number - slice_first_num) / 2; }
+inline static u64 index_of(u64 const number) { return (number - slice_first_num) / 2; }
 
 static void mark_multiples(u32 const prime) {
-  u32 start_from_num = MAX(((slice_first_num + prime - 1) / prime) * prime, prime * prime);
+  u64 start_from_num = MAX((((u64)slice_first_num + prime - 1) / prime) * prime, (u64)prime * prime);
   if(start_from_num % 2 == 0)
     start_from_num += prime;
   LOG("Slave [%" PRIu32 ", %" PRIu32 "] marking multiples of %" PRIu32 " beginning in %" PRIu32, slice_first_num, num_of(slice.m_buffer_size - 1), prime, start_from_num);
-  for(u32 i = index_of(start_from_num); i < slice.m_buffer_size; i += prime) {
+  for(u64 i = index_of(start_from_num); i < slice.m_buffer_size; i += prime) {
     LOG("Slave [%" PRIu32 ", %" PRIu32 "] marked index %" PRIu32 " (num = %" PRIu32 ")", slice_first_num, num_of(slice.m_buffer_size - 1), i, num_of(i));
     slice.m_buffer[i] = NOT_PRIME;
   }

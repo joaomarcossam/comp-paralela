@@ -1,5 +1,6 @@
-#include <macros.h>
 #include <simple_buffers.h>
+
+#include <macros.h>
 #include <stdlib.h>
 
 u32Buffer u32_buffer_init(size_t const size) {

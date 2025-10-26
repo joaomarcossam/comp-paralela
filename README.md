@@ -17,24 +17,13 @@ Esse repositório é destino aos trabalhos práticos realizados na disciplina de
 
 O objetivo é exercitar o usa da biblioteca MPI para desenvolver soluções de alto desempenho utilizando técnicas de programação paralela em linguagem C, dividindo o processamento de um programa em diferentes processos ou mesmo máquinas.
 
-### Estratégias: 
+## Compilação
 
-Para uma entrada N
-1. Estratégia 1
-    - Dividir entrada para os N/(nº de processadores-1)
-    - p N = 1000, processadores = 5
-    - 0 ~ 250, 251 ~ 500, 501 ~ 750, 751 ~1000
+Durante a compilação, existem 3 constantes de pré-processamento que podem ser definidas para modificar o comportamento do código:
+#### - LOG_CODE_ENABLED: Ativa logs de execução que serão impressos no stdout.
+#### - PARALLEL: Faz a implementação paralela do código ser compilada.
+#### - PRINT_RESULT: Faz os valores primos encontrados pelo Crivo de Erastótenes serem impressos no stdout.
 
+## Estratégia implementada: 
 
-2. Estratégia 2
-    - Prover digitos a partir do master
-    - 0 - master 
-    - 1 - slave < 2
-    - 2 - slave < 3
-
-3. Estratégia 3
-    - Divir igualmente os valores
-    - marcar múltiplos na porção
-    - calcular próximo múltiplo
-    - Envia ao master o primo e o múltiplo
-
+Foi implementada uma estratégia embasada no paradigma Master/Slave, onde, para uma entrada N qualquer, teremos o conjunto de números ímpares entre [3,N] segmentados em um número de parcelas equivalente à quantiade de processos trabalhadores. Cada trabalhador tem seu momento de buscar por valores primos (controlado pelo Master) e, ao encontrar um, é enviada uma mensagem para o Master que reenvia o número para os outros trabalhadores que devem marcar em suas parcelas os múltiplos do primo encontrado.
